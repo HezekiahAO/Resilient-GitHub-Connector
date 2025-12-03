@@ -4,7 +4,8 @@ import time         # To import time module available for python's standard libr
 import requests     #  To make HTTP requests from GITHUB.
 from typing import Dict, Any  #  To provide type hints for dictionaries and any type.
 
-
+from dotenv import load_dotenv  #  To load environment variables from a .env file.
+from .custom_exceptions import GitHubAPIError, ResourceNotFoundError, RateLimitExceeded
 
 class GitHubClient:
 
@@ -25,11 +26,14 @@ class GitHubClient:
 
     # Fetches general info about a repository (stars, forks, description).
     def get_repo_details(self, owner: str, repo: str) -> dict:
-        raise NotImplementedError
+        endpoint = f'/repos/{owner}/{repo}'
+        return self.make_request('GET', endpoint=endpoint)
+    
 
     # Fetches details about the latest release.
     def get_latest_release(self, owner: str, repo: str) -> dict:
-        raise NotImplementedError
+        endpoint = f'/repos/{owner}/{repo}/releases/latest'
+        return self.make_request('GET', endpoint)
 
 
     def get_headers(self) -> Dict[str, str]:
@@ -51,10 +55,54 @@ class GitHubClient:
 
         url = f'{self.base_url,}{endpoint}'
 
-        header = self.get_headers()
+        headers = self.get_headers()
 
         logging.info(f'Request: {method}{url}')
 
         #Retry logic for handling rate limits
-        retries = 3
-        backoff = 1 # seconds
+        retries = 0
+        backoff = 1 # Waiting time in seconds
+
+        while retries < 3:
+
+            try: 
+                response = requests.request(method, url, headers=headers)
+
+                # if ok -> return response json
+                
+                # Successful response
+
+                if response.status_code == 200:
+                    return response.json()
+                
+                # Resource not found
+
+                elif response.status_code == 404:
+                    logging.error(f'Resource not found: {url}')
+                    raise ResourceNotFoundError(f'Resource not found: {url}')
+                
+                # Rate limit exceeded
+
+                elif response.status_code in (403, 429):
+                    logging.warning(f"Rate limit hit. Retry {retries + 1}/3 in {backoff}s.")
+
+                    time.sleep(backoff)
+                    backoff *= 2
+                    retries += 1 
+                    continue
+
+                # Other errors
+
+                else:
+                    logging.error(f"GitHub API error {response.status_code}: {response.text}")
+                    raise GitHubAPIError(
+                        f"GitHub API error {response.status_code}: {response.text}"
+                        )
+                
+            except requests.exceptions.RequestException as error:
+                logging.error(f'Newtwork error: {error}')
+                raise GitHubAPIError(f'Network error: {error}')
+        
+            # Retry Exhaustion
+
+        raise GitHubAPIError("Exceeded maximum retries due to rate limiting.")
