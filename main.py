@@ -1,15 +1,10 @@
-class GitHubClient:
+from github_connecto.client import GitHubClient
 
-    def __init__(self) -> None:
-        pass
+if __name__ == "__main__":
 
-    # Fetches general info about a repository (stars, forks, description).
-    def get_repo_details(self, owner: str, repo: str) -> dict:
-        raise NotImplementedError
+    client = GitHubClient()
+    repo_details = client.get_repo_details("octocat", "Hello-World")
+    print("Repository Details:", repo_details)
 
-    # Fetches details about the latest release.
-    def get_latest_release(self, owner: str, repo: str) -> dict:
-        raise NotImplementedError
-
-
-base_url = 'https://api.github.com'
+    latest_release = client.get_latest_release("octocat", "Hello-World")
+    print("Latest Release:", latest_release)

@@ -47,17 +47,17 @@ class GitHubClient:
         return headers
 
 
-# The Core of my API, the Make request, it handles building the URL, sending the request, detecting errors, retrying on rate limits, converting responses to JSON and raising custom exceptions.
+# The Core of my API, the make_request, it handles building the URL, sending the request, detecting errors, retrying on rate limits, converting responses to JSON and raising custom exceptions.
 
     def make_request(self, method: str, endpoint: str) -> Dict[str, Any]:
         
         "Makes an HTTP request to the GitHub API."
 
-        url = f'{self.base_url,}{endpoint}'
+        url = f"{self.base_url,}{endpoint}"
 
         headers = self.get_headers()
 
-        logging.info(f'Request: {method}{url}')
+        logging.info(f"Request: {method}{url}")
 
         #Retry logic for handling rate limits
         retries = 0
